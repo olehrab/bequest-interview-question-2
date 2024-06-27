@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { ec } from "elliptic";
 
 const API_URL = "http://localhost:8080";
+const ecCurve = "secp256k1";
 
 function App() {
   const [data, setData] = useState<string>();
+  const [signature, setSignature] = useState<string>();
 
   useEffect(() => {
     getData();
@@ -13,6 +16,7 @@ function App() {
     const response = await fetch(API_URL);
     const { data } = await response.json();
     setData(data);
+    setSignature(signature);
   };
 
   const updateData = async () => {
@@ -29,7 +33,17 @@ function App() {
   };
 
   const verifyData = async () => {
-    throw new Error("Not implemented");
+    const ecKey = ec.keyFromPublic(ecCurve, process.env.PUBLIC_KEY);
+    const isValid = ecKey.verify(data, signature);
+    if (!isValid) {
+      console.error("Data has been tampered with!");
+      // Request original data from server
+      const originalDataResponse = await fetch(API_URL + "/original");
+      const originalData = await originalDataResponse.json();
+      setData(originalData);
+    } else {
+      console.log("Data is valid");
+    }
   };
 
   return (
